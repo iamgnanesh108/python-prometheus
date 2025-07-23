@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s # How frequently to scrape targets
+
+scrape_configs:
+  - job_name: 'flask-app'
+    # The default endpoint for prometheus_flask_exporter is /metrics
+    metrics_path: '/metrics'
+    # The target is the Flask application running on port 5000
+    static_configs:
+      - targets: ['localhost:5000']
