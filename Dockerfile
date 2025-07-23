@@ -4,24 +4,33 @@ FROM python:3.9-slim-bullseye
 # Set the working directory in the container
 WORKDIR /app
 
+# Define versions for tools to make them easy to update
+ENV PROMETHEUS_VERSION=2.51.2
+
 # --- System Dependencies & Prometheus + Grafana Installation ---
-# Install wget and other dependencies, then install Prometheus and Grafana
+# This single RUN command updates, installs dependencies, and then cleans up.
 RUN apt-get update && \
-    apt-get install -y wget apt-transport-https software-properties-common && \
+    apt-get install -y --no-install-recommends \
+    wget \
+    ca-certificates \
+    gnupg && \
     \
     # Install Prometheus
-    wget https://github.com/prometheus/prometheus/releases/download/v2.37.0/prometheus-2.37.0.linux-amd64.tar.gz && \
-    tar xvf prometheus-2.37.0.linux-amd64.tar.gz && \
-    mv prometheus-2.37.0.linux-amd64 /etc/prometheus && \
-    rm prometheus-2.37.0.linux-amd64.tar.gz && \
+    wget "https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz" && \
+    tar xvf "prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz" && \
+    mv "prometheus-${PROMETHEUS_VERSION}.linux-amd64" /etc/prometheus && \
+    rm "prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz" && \
     \
-    # Install Grafana
-    wget -q -O - https://packages.grafana.com/gpg.key | apt-key add - && \
-    echo "deb https://packages.grafana.com/oss/deb stable main" | tee -a /etc/apt/sources.list.d/grafana.list && \
+    # Install Grafana using the new recommended GPG key method
+    wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor > /usr/share/keyrings/grafana.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main" > /etc/apt/sources.list.d/grafana.list && \
+    \
+    # Update package list again and install Grafana
     apt-get update && \
     apt-get install -y grafana && \
     \
-    # Clean up APT cache
+    # Clean up APT cache to reduce image size
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # --- Python Application Setup ---
